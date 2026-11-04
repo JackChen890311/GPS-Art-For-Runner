@@ -1,0 +1,176 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0"
+    />
+    <meta name="theme-color" content="#f7f8fb" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta
+      name="description"
+      content="GPS Art 路線預覽：一次看完所有軌跡，從離你最近的位置起跑，並顯示目前進度與偏離距離。"
+    />
+    <link rel="icon" href="data:," />
+    <title>GPS Art 跑圖 · 路線預覽</title>
+  </head>
+  <body>
+    <div id="map"></div>
+
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark">GPS Art</span>
+        <span class="sub">跑圖</span>
+      </div>
+      <button id="simToggle" class="ghost" type="button" aria-pressed="false">模擬</button>
+    </header>
+
+    <div id="toast" class="toast" role="status" aria-live="polite"></div>
+
+    <section class="sheet" aria-label="路線資訊">
+      <div class="sheet-grip"></div>
+
+      <!-- 1. 瀏覽全部路線 -->
+      <div id="paneBrowse" class="pane">
+        <div class="pane-head">
+          <h1>路線</h1>
+          <span id="routeCount" class="pane-count"></span>
+        </div>
+        <div id="routeList" class="route-list"></div>
+        <div class="browse-foot">
+          <span id="browseHint" class="hint">選一條路線，從離你最近的位置起跑。</span>
+          <button id="relocate" class="ghost" type="button" hidden>重新定位</button>
+        </div>
+      </div>
+
+      <!-- 2. 選定路線，確認起跑點 -->
+      <div id="panePreview" class="pane" hidden>
+        <div class="head">
+          <div>
+            <h1 id="pvName">—</h1>
+            <p id="pvNote" class="note"></p>
+          </div>
+          <div class="total"><span id="pvTotal">—</span><small>km</small></div>
+        </div>
+
+        <div class="start-block">
+          <div class="k">起跑點</div>
+          <div id="startInfo" class="v">—</div>
+          <div id="startMode" class="seg" role="group" aria-label="起跑點選擇">
+            <button type="button" data-mode="nearest" aria-pressed="true">最近點切入</button>
+            <button type="button" data-mode="start" aria-pressed="false">原始起點</button>
+          </div>
+        </div>
+
+        <div class="foot">
+          <button id="backToBrowse" class="ghost wide" type="button">返回</button>
+          <button id="startRun" class="primary" type="button">開始跑圖</button>
+        </div>
+      </div>
+
+      <!-- 3. 跑圖中 -->
+      <div id="paneRun" class="pane" hidden>
+        <div class="head">
+          <div>
+            <h1 id="runName">—</h1>
+            <p id="runNote" class="note"></p>
+          </div>
+          <div class="total"><span id="runTotal">—</span><small>km</small></div>
+        </div>
+
+        <div class="progress"><div id="bar" class="bar"></div></div>
+
+        <div id="stats" class="stats">
+          <div class="stat">
+            <div class="k">已完成</div>
+            <div class="v"><span id="pct">0</span><small>%</small></div>
+          </div>
+          <div class="stat">
+            <div class="k">剩餘距離</div>
+            <div class="v"><span id="left">—</span><small>km</small></div>
+          </div>
+          <div class="stat">
+            <div class="k">偏離路線</div>
+            <div class="v"><span id="off">--</span><small>m</small></div>
+          </div>
+        </div>
+
+        <div class="run-status">
+          <span id="status" class="pill">尚未定位</span>
+        </div>
+
+        <div class="foot">
+          <button id="locate" class="ghost wide" type="button">回到我的位置</button>
+          <button id="endRun" class="primary" type="button">結束跑圖</button>
+        </div>
+      </div>
+
+      <div id="sim" class="sim" hidden>
+        <div class="sim-row">
+          <span class="sim-hint">WASD 移動</span>
+          <button id="simSnap" class="ghost" type="button">吸附回路線</button>
+        </div>
+      </div>
+
+      <p class="attrib">地圖資料 © OpenStreetMap 貢獻者 · 圖磚 OpenFreeMap</p>
+    </section>
+
+    <div id="dpad" class="dpad" hidden>
+      <button class="dpad-btn up" type="button" data-dir="up" aria-label="往北">↑</button>
+      <button class="dpad-btn left" type="button" data-dir="left" aria-label="往西">←</button>
+      <button class="dpad-btn right" type="button" data-dir="right" aria-label="往東">→</button>
+      <button class="dpad-btn down" type="button" data-dir="down" aria-label="往南">↓</button>
+    </div>
+
+    <div id="summary" class="summary" hidden>
+      <div class="summary-backdrop" data-close></div>
+      <div class="summary-card" role="dialog" aria-modal="true" aria-labelledby="smTitle">
+        <div class="summary-head">
+          <div>
+            <p class="summary-kicker">本次跑圖</p>
+            <h2 id="smTitle">—</h2>
+            <p id="smNote" class="note"></p>
+          </div>
+          <div class="summary-score">
+            <span id="smPct">0</span><small>%</small>
+            <em>完成</em>
+          </div>
+        </div>
+
+        <figure class="summary-shot">
+          <canvas id="smShot" aria-label="本次跑圖的移動軌跡"></canvas>
+          <div id="smShotEmpty" class="summary-shot-empty">這次沒有移動紀錄</div>
+        </figure>
+        <p class="summary-legend"><span class="dot"></span>橘色是你這次實際走過的軌跡，綠點起點、黑點終點</p>
+
+        <div class="summary-stats">
+          <div class="summary-stat">
+            <div class="k">時間</div>
+            <div id="smTime" class="v">—</div>
+          </div>
+          <div class="summary-stat">
+            <div class="k">實際距離</div>
+            <div id="smDist" class="v">—</div>
+          </div>
+          <div class="summary-stat">
+            <div class="k">平均速度</div>
+            <div id="smSpeed" class="v">—</div>
+          </div>
+          <div class="summary-stat">
+            <div class="k">平均偏離</div>
+            <div id="smOff" class="v">—</div>
+          </div>
+        </div>
+
+        <div class="foot">
+          <button id="smClose" class="primary" type="button">完成</button>
+        </div>
+      </div>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
