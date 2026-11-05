@@ -75,7 +75,6 @@ const ui = {
 }
 
 type Phase = 'browse' | 'preview' | 'run'
-type StartMode = 'nearest' | 'start'
 type Dir = 'up' | 'down' | 'left' | 'right'
 
 let phase: Phase = 'browse'
@@ -85,7 +84,6 @@ let runRoute: RouteData | null = null
 let previewRoute: RouteData | null = null
 let previewLeadIn = 0
 let runLeadIn = 0
-let startMode: StartMode = 'nearest'
 let startAlong = 0
 
 let currentFix: Fix | null = null
@@ -221,13 +219,7 @@ function setPhase(next: Phase): void {
   ui.paneBrowse.hidden = next !== 'browse'
   ui.panePreview.hidden = next !== 'preview'
   ui.paneRun.hidden = next !== 'run'
-  ui.startMode.hidden = next !== 'preview' || !activeRoute() || sameStart(activeRoute())
-}
-
-function sameStart(route: RouteData | null): boolean {
-  if (!route || !currentFix) return false
-  const near = nearestPoint(route, [currentFix.lon, currentFix.lat])
-  return haversine(near.point, route.coords[0]) < 30
+  ui.startMode.hidden = true
 }
 
 function enterBrowse(): void {
@@ -261,7 +253,7 @@ function enterPreview(id: string): void {
   runLeadIn = 0
   lastAlong = null
   finished = false
-  startMode = currentFix ? 'nearest' : 'start'
+  startAlong = 0
 
   ui.pvName.textContent = route.name
   ui.pvNote.textContent = route.note
@@ -271,18 +263,6 @@ function enterPreview(id: string): void {
   setPhase('preview')
   updatePreviewRoutes()
   mapView.fitRoute(previewRoute ?? route)
-}
-
-function setStartMode(mode: StartMode): void {
-  startMode = mode
-  reflectStartMode()
-  updatePreviewRoutes()
-}
-
-function reflectStartMode(): void {
-  for (const btn of Array.from(ui.startMode.querySelectorAll<HTMLButtonElement>('button'))) {
-    btn.setAttribute('aria-pressed', String(btn.dataset.mode === startMode))
-  }
 }
 
 /**
@@ -304,13 +284,9 @@ function updatePreviewRoutes(): void {
   if (!route) return
 
   const near = currentFix ? nearestPoint(route, [currentFix.lon, currentFix.lat]) : null
-  const nearestBtn = ui.startMode.querySelector<HTMLButtonElement>('[data-mode="nearest"]')
-  if (nearestBtn) nearestBtn.disabled = near === null
-  if (near === null) startMode = 'start'
-  reflectStartMode()
 
   const here: LngLat | null = currentFix ? [currentFix.lon, currentFix.lat] : null
-  const useNearest = startMode === 'nearest' && near !== null
+  const useNearest = currentFix !== null && near !== null
   // 閉環的「終點」其實就是起點，別讓它顯示成 100% 處接上
   const atLoopEnd = useNearest && near !== null && isClosed(route) && near.along >= route.total - 30
   startAlong = useNearest && !atLoopEnd ? near.along : 0
@@ -330,7 +306,7 @@ function updatePreviewRoutes(): void {
   mapView.setStartPoint(startPoint)
   // 原路徑上「不會跑到」的前段，用深灰實線標出來
   updateReference(route, startAlong)
-  ui.startMode.hidden = near === null || haversine(near.point, route.coords[0]) < 30
+  ui.startMode.hidden = true
 
   if (!currentFix) {
     ui.startInfo.textContent = '尚未定位，將從路線起點開始'
@@ -385,7 +361,7 @@ function startRun(): void {
   const base = activeRoute()
   if (!base) return
 
-  const along = startMode === 'nearest' && currentFix ? startAlong : 0
+  const along = currentFix ? startAlong : 0
   const next = previewRoute ?? routeFrom(base, along)
 
   runRoute = next
@@ -842,12 +818,6 @@ function bindEvents(): void {
 
   ui.smClose.addEventListener('click', closeSummary)
   ui.summary.querySelector('.summary-backdrop')?.addEventListener('click', closeSummary)
-
-  ui.startMode.addEventListener('click', (e) => {
-    const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('button[data-mode]')
-    if (!btn || btn.disabled) return
-    setStartMode(btn.dataset.mode as StartMode)
-  })
 
   ui.locate.addEventListener('click', () => {
     if (simMode) {
