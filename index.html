@@ -35,14 +35,26 @@
 
       <!-- 1. 瀏覽全部路線 -->
       <div id="paneBrowse" class="pane">
-        <div class="pane-head">
-          <h1>路線</h1>
-          <span id="routeCount" class="pane-count"></span>
+        <div id="browseHome" class="browse-home">
+          <h1>GPS Art 跑圖</h1>
+          <p class="note">跑圖路線預覽與陪跑</p>
+          <div class="browse-actions">
+            <button id="freeRunBtn" class="primary wide" type="button">開始起跑（自由跑動）</button>
+            <button id="chooseShapeBtn" class="ghost wide" type="button">選擇圖形</button>
+          </div>
         </div>
-        <div id="routeList" class="route-list"></div>
-        <div class="browse-foot">
-          <span id="browseHint" class="hint">選一條路線，從離你最近的位置起跑。</span>
-          <button id="relocate" class="ghost" type="button" hidden>重新定位</button>
+
+        <div id="browsePick" hidden>
+          <div class="pane-head">
+            <h1>路線</h1>
+            <span id="routeCount" class="pane-count"></span>
+          </div>
+          <div id="routeList" class="route-list"></div>
+          <div class="browse-foot">
+            <span id="browseHint" class="hint">選一條路線，從離你最近的位置起跑。也可以直接點地圖上的路線。</span>
+            <button id="backToHome" class="ghost" type="button">返回</button>
+            <button id="relocate" class="ghost" type="button" hidden>重新定位</button>
+          </div>
         </div>
       </div>
 

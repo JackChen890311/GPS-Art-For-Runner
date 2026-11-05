@@ -30,6 +30,11 @@ const ui = {
   toast: el('toast'),
 
   paneBrowse: el('paneBrowse'),
+  browseHome: el('browseHome'),
+  browsePick: el('browsePick'),
+  freeRunBtn: el<HTMLButtonElement>('freeRunBtn'),
+  chooseShapeBtn: el<HTMLButtonElement>('chooseShapeBtn'),
+  backToHome: el<HTMLButtonElement>('backToHome'),
   panePreview: el('panePreview'),
   paneRun: el('paneRun'),
   routeCount: el('routeCount'),
@@ -240,7 +245,20 @@ function enterBrowse(): void {
   mapView.setReference(null)
   mapView.fitAll()
   setPhase('browse')
+  ui.browseHome.hidden = false
+  ui.browsePick.hidden = true
   updateBrowseDistances()
+}
+
+function showBrowsePick(): void {
+  ui.browseHome.hidden = true
+  ui.browsePick.hidden = false
+  updateBrowseDistances()
+}
+
+function showBrowseHome(): void {
+  ui.browseHome.hidden = false
+  ui.browsePick.hidden = true
 }
 
 function enterPreview(id: string): void {
@@ -401,6 +419,42 @@ function startRun(): void {
   showToast('開始跑圖！沿著路線跑，偏離時看下方數字', 2600)
 }
 
+function startFreeRun(): void {
+  activeId = null
+  runRoute = null
+  previewRoute = null
+  previewLeadIn = 0
+  runLeadIn = 0
+  lastAlong = null
+  finished = false
+  farNotified = false
+  startAlong = 0
+
+  trace = []
+  traceDistance = 0
+  deviationSum = 0
+  deviationCount = 0
+  lastPct = 0
+  runStartedAt = Date.now()
+  mapView.setTrace([])
+  mapView.setActive(null)
+  mapView.setStartPoint(null)
+  mapView.setReference(null)
+
+  ui.runName.textContent = '自由跑動'
+  ui.runNote.textContent = '記錄你的軌跡'
+  ui.runTotal.textContent = '—'
+
+  setPhase('run')
+  resetRunStats()
+  if (simMode && simPos) {
+    pushSimFix()
+  } else {
+    applyFix(currentFix)
+  }
+  showToast('開始自由跑動！沿著你想跑的路線走', 2600)
+}
+
 function endRun(): void {
   const summary = buildRunSummary()
   enterBrowse()
@@ -425,7 +479,7 @@ function buildRunSummary(): RunSummary {
   const route = runRoute
   const seconds = runStartedAt > 0 ? (Date.now() - runStartedAt) / 1000 : 0
   return {
-    name: route?.name ?? '跑圖',
+    name: runRoute?.name ?? (trace.length ? '自由跑動' : '跑圖'),
     note: ui.runNote.textContent ?? '',
     pct: lastPct,
     seconds,
@@ -592,6 +646,27 @@ function applyFix(f: Fix | null): void {
 
   if (phase === 'preview') {
     updatePreviewRoutes()
+    return
+  }
+
+  if (phase === 'run' && runRoute === null) {
+    // 自由跑動：沒有路線，只記錄軌跡與時間/速度
+    if (!f) {
+      resetRunStats()
+      return
+    }
+    pushTrace(f)
+    const secs = runStartedAt > 0 ? (Date.now() - runStartedAt) / 1000 : 0
+    ui.pct.textContent = '0'
+    ui.bar.style.width = '0%'
+    ui.doneKm.textContent = (traceDistance / 1000).toFixed(2)
+    ui.elapsed.textContent = fmtDuration(secs)
+    ui.speed.textContent =
+      secs >= 1 && traceDistance > 0
+        ? ((traceDistance / 1000) / (secs / 3600)).toFixed(1)
+        : '—'
+    ui.stats.classList.remove('dim')
+    setStatus('記錄中', 'ok')
     return
   }
 
@@ -815,7 +890,9 @@ function snapToRoute(): void {
 function bindEvents(): void {
   ui.simToggle.addEventListener('click', () => setSimMode(!simMode))
   ui.simSnap.addEventListener('click', snapToRoute)
-  ui.startRun.addEventListener('click', startRun)
+  ui.freeRunBtn.addEventListener('click', startFreeRun)
+  ui.chooseShapeBtn.addEventListener('click', showBrowsePick)
+  ui.backToHome.addEventListener('click', showBrowseHome)
   ui.endRun.addEventListener('click', endRun)
   ui.backToBrowse.addEventListener('click', enterBrowse)
 
@@ -841,7 +918,9 @@ function bindEvents(): void {
     showToast('正在重新取得定位…')
   })
 
-  tracker.onFix = (fix) => applyFix(fix)
+  mapView.setRouteClickHandler((id) => {
+    if (phase === 'browse') enterPreview(id)
+  })
   tracker.onError = (kind, message) => {
     ui.relocate.hidden = false
     if (kind === 'insecure') {

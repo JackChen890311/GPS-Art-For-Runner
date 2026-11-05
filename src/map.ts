@@ -27,7 +27,7 @@ function lineCollection(coords: LngLat[]): FeatureCollection<LineString> {
 
 function routeCollection(routes: RouteData[]): FeatureCollection<LineString> {
   const features = routes
-    .map((r) => lineFeature(r.coords, { color: r.color }))
+    .map((r) => lineFeature(r.coords, { id: r.id, color: r.color }))
     .filter((f): f is Feature<LineString> => f !== null)
   return { type: 'FeatureCollection', features }
 }
@@ -55,6 +55,7 @@ export class MapView {
   readonly map: maplibregl.Map
 
   private ready = false
+  private routeClickHandler: ((id: string) => void) | null = null
   private routes: RouteData[] = []
   private active: RouteData | null = null
   private along = 0
@@ -95,6 +96,7 @@ export class MapView {
     this.map.on('load', () => {
       this.ready = true
       this.installLayers()
+      this.bindRouteClick()
       // 地圖載入前就先拿到的路線 / 定位，這時候補畫上去
       this.renderRoutes()
       this.renderActive()
@@ -411,6 +413,32 @@ export class MapView {
     const bounds = new maplibregl.LngLatBounds()
     for (const r of routes) for (const c of r.coords) bounds.extend(c)
     return bounds
+  }
+
+  setRouteClickHandler(cb: (id: string) => void): void {
+    this.routeClickHandler = cb
+    if (this.ready) this.bindRouteClick()
+  }
+
+  private bindRouteClick(): void {
+    if (!this.routeClickHandler) return
+    const handler = (e: { features?: { properties?: { id?: string } }[] }): void => {
+      const id = e.features?.[0]?.properties?.id
+      if (id) this.routeClickHandler?.(id)
+    }
+    for (const layer of ['routes-line', 'route-full', 'route-rest']) {
+      try {
+        this.map.on('click', layer, handler as never)
+      } catch {
+        // layer may not exist
+      }
+    }
+    this.map.on('mouseenter', 'routes-line', () => {
+      this.map.getCanvas().style.cursor = 'pointer'
+    })
+    this.map.on('mouseleave', 'routes-line', () => {
+      this.map.getCanvas().style.cursor = ''
+    })
   }
 
   fitAll(duration = 700): void {

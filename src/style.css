@@ -525,7 +525,35 @@ body {
   opacity: 0.4;
 }
 
-/* ---------- 底部按鈕列 ---------- */
+/* ---------- 瀏覽首頁 ---------- */
+
+.browse-home {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 8px 0 4px;
+}
+
+.browse-home h1 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.browse-home .note {
+  margin: 0;
+  color: var(--muted);
+}
+
+.browse-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.browse-actions .wide {
+  width: 100%;
+}
 
 .foot {
   display: flex;
