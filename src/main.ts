@@ -226,6 +226,13 @@ function setPhase(next: Phase): void {
   ui.panePreview.hidden = next !== 'preview'
   ui.paneRun.hidden = next !== 'run'
   ui.startMode.hidden = true
+  syncHomeChrome()
+}
+
+/** 首頁時把資訊卡外框收掉，只留下置中的兩顆按鈕 */
+function syncHomeChrome(): void {
+  const home = phase === 'browse' && !ui.browseHome.hidden
+  document.querySelector('.sheet')?.classList.toggle('is-home', home)
 }
 
 function enterBrowse(): void {
@@ -247,18 +254,21 @@ function enterBrowse(): void {
   setPhase('browse')
   ui.browseHome.hidden = false
   ui.browsePick.hidden = true
+  syncHomeChrome()
   updateBrowseDistances()
 }
 
 function showBrowsePick(): void {
   ui.browseHome.hidden = true
   ui.browsePick.hidden = false
+  syncHomeChrome()
   updateBrowseDistances()
 }
 
 function showBrowseHome(): void {
   ui.browseHome.hidden = false
   ui.browsePick.hidden = true
+  syncHomeChrome()
 }
 
 function enterPreview(id: string): void {
@@ -922,6 +932,7 @@ function bindEvents(): void {
   mapView.setRouteClickHandler((id) => {
     if (phase === 'browse') enterPreview(id)
   })
+  tracker.onFix = (fix) => applyFix(fix)
   tracker.onError = (kind, message) => {
     ui.relocate.hidden = false
     if (kind === 'insecure') {

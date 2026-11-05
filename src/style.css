@@ -555,6 +555,44 @@ body {
   width: 100%;
 }
 
+/* 首頁：拿掉資訊卡外框，只留兩顆置中的按鈕 */
+.sheet.is-home {
+  top: 50%;
+  bottom: auto;
+  width: auto;
+  max-width: none;
+  max-height: none;
+  padding: 0 20px;
+  background: transparent;
+  border: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.sheet.is-home .sheet-grip,
+.sheet.is-home .attrib,
+.sheet.is-home .browse-home h1,
+.sheet.is-home .browse-home .note {
+  display: none;
+}
+
+.sheet.is-home .browse-home {
+  gap: 12px;
+  padding: 0;
+}
+
+.sheet.is-home .browse-actions {
+  align-items: center;
+  margin-top: 0;
+}
+
+.sheet.is-home .browse-actions .wide {
+  width: min(320px, 76vw);
+  pointer-events: auto;
+}
+
 .foot {
   display: flex;
   align-items: center;
