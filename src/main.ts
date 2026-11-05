@@ -108,6 +108,7 @@ let traceDistance = 0
 let deviationSum = 0
 let deviationCount = 0
 let lastPct = 0
+let statsTimer = 0
 
 /* ---------------- 模擬位置 ---------------- */
 
@@ -284,6 +285,8 @@ function setPhase(next: Phase): void {
   ui.paneRun.hidden = next !== 'run'
   ui.startMode.hidden = true
   syncSheetChrome()
+  if (next === 'run') startStatsTimer()
+  else stopStatsTimer()
 }
 
 /** 首頁只留圓形按鈕；選圖時把資訊卡變成全螢幕圖形畫廊 */
@@ -694,6 +697,27 @@ function closeSummary(): void {
 
 /* ---------------- 進度 ---------------- */
 
+/** 計時器：就算站著不動，經歷時間與換算時速也要每秒更新 */
+function startStatsTimer(): void {
+  stopStatsTimer()
+  statsTimer = window.setInterval(updateRunClock, 1000)
+}
+
+function stopStatsTimer(): void {
+  if (statsTimer) window.clearInterval(statsTimer)
+  statsTimer = 0
+}
+
+function updateRunClock(): void {
+  if (phase !== 'run') return
+  const secs = runStartedAt > 0 ? (Date.now() - runStartedAt) / 1000 : 0
+  ui.elapsed.textContent = fmtDuration(secs)
+  ui.speed.textContent =
+    secs >= 1 && traceDistance > 0
+      ? ((traceDistance / 1000) / (secs / 3600)).toFixed(1)
+      : '—'
+}
+
 function resetRunStats(): void {
   ui.pct.textContent = '0'
   ui.doneKm.textContent = '0.00'
@@ -727,15 +751,10 @@ function applyFix(f: Fix | null): void {
       return
     }
     pushTrace(f)
-    const secs = runStartedAt > 0 ? (Date.now() - runStartedAt) / 1000 : 0
     ui.pct.textContent = '0'
     ui.bar.style.width = '0%'
     ui.doneKm.textContent = (traceDistance / 1000).toFixed(2)
-    ui.elapsed.textContent = fmtDuration(secs)
-    ui.speed.textContent =
-      secs >= 1 && traceDistance > 0
-        ? ((traceDistance / 1000) / (secs / 3600)).toFixed(1)
-        : '—'
+    updateRunClock()
     ui.stats.classList.remove('dim')
     setStatus('記錄中', 'ok')
     return
@@ -752,8 +771,11 @@ function applyFix(f: Fix | null): void {
   const proj = project(runRoute, [f.lon, f.lat], lastAlong)
   lastAlong = proj.along
 
-  // 完成度用「目前公里數 / 總公里數」計算
-  const pct = Math.max(0, Math.min(100, (proj.along / runRoute.total) * 100))
+  // 完成度用「實際跑過的公里數 / 路線總公里數」計算
+  const pct =
+    runRoute.total > 0
+      ? Math.max(0, Math.min(100, (traceDistance / runRoute.total) * 100))
+      : 0
   // 偏離距離小於 GPS 誤差時，一律視為在線上
   const deviation = proj.dist <= f.accuracy ? 0 : proj.dist
 
@@ -764,14 +786,8 @@ function applyFix(f: Fix | null): void {
   }
 
   ui.pct.textContent = pct.toFixed(0)
-  ui.doneKm.textContent = (proj.along / 1000).toFixed(2)
-  const secs = runStartedAt > 0 ? (Date.now() - runStartedAt) / 1000 : 0
-  ui.elapsed.textContent = fmtDuration(secs)
-  if (secs >= 1 && proj.along > 0) {
-    ui.speed.textContent = ((proj.along / 1000) / (secs / 3600)).toFixed(1)
-  } else {
-    ui.speed.textContent = '—'
-  }
+  ui.doneKm.textContent = (traceDistance / 1000).toFixed(2)
+  updateRunClock()
   ui.bar.style.width = `${pct}%`
 
   mapView.setProgress(proj.along)
