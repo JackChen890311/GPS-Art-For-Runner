@@ -893,6 +893,7 @@ function bindEvents(): void {
   ui.freeRunBtn.addEventListener('click', startFreeRun)
   ui.chooseShapeBtn.addEventListener('click', showBrowsePick)
   ui.backToHome.addEventListener('click', showBrowseHome)
+  ui.startRun.addEventListener('click', startRun)
   ui.endRun.addEventListener('click', endRun)
   ui.backToBrowse.addEventListener('click', enterBrowse)
 
