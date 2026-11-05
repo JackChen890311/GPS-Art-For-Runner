@@ -39,14 +39,26 @@
           <h1>GPS Art 跑圖</h1>
           <p class="note">跑圖路線預覽與陪跑</p>
           <div class="browse-actions">
-            <button id="freeRunBtn" class="primary wide" type="button">自由跑動</button>
-            <button id="chooseShapeBtn" class="ghost wide" type="button">選擇圖形</button>
+            <button id="freeRunBtn" class="fab primary" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="m3 11 19-9-9 19-2-8-8-2Z" />
+              </svg>
+              <span>自由跑動</span>
+            </button>
+            <button id="chooseShapeBtn" class="fab ghost" type="button">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M8.3 10a.7.7 0 0 1-.6-1.1L11.4 3a.7.7 0 0 1 1.2 0l3.7 5.9a.7.7 0 0 1-.6 1.1H8.3Z" />
+                <rect x="3" y="14" width="7" height="7" rx="1.2" />
+                <circle cx="17.5" cy="17.5" r="3.5" />
+              </svg>
+              <span>選擇圖形</span>
+            </button>
           </div>
         </div>
 
         <div id="browsePick" hidden>
           <div class="pane-head">
-            <h1>路線</h1>
+            <h1>選擇圖形</h1>
             <span id="routeCount" class="pane-count"></span>
           </div>
           <div id="routeList" class="route-list"></div>

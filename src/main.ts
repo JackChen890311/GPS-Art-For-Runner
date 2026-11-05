@@ -167,6 +167,61 @@ function closestRoute(pos: LngLat): RouteData | null {
 
 /* ---------------- 路線清單 ---------------- */
 
+/** 把路線座標縮成 0–100 的 SVG 折線點，用來當圖形縮圖 */
+function thumbnailPoints(coords: LngLat[]): string {
+  const n = coords.length
+  if (n < 2) return ''
+
+  const stride = Math.max(1, Math.ceil(n / 400))
+  const sampled: LngLat[] = []
+  for (let i = 0; i < n; i += stride) sampled.push(coords[i])
+  if (sampled[sampled.length - 1] !== coords[n - 1]) sampled.push(coords[n - 1])
+
+  const mLon = Math.cos((coords[0][1] * Math.PI) / 180)
+  let minX = Infinity
+  let maxX = -Infinity
+  let minY = Infinity
+  let maxY = -Infinity
+  const plane = sampled.map(([lon, lat]) => {
+    const x = lon * mLon
+    const y = -lat
+    if (x < minX) minX = x
+    if (x > maxX) maxX = x
+    if (y < minY) minY = y
+    if (y > maxY) maxY = y
+    return [x, y] as const
+  })
+
+  const span = Math.max(maxX - minX, maxY - minY, 1e-9)
+  const scale = 82 / span
+  const ox = (100 - (maxX - minX) * scale) / 2
+  const oy = (100 - (maxY - minY) * scale) / 2
+
+  return plane
+    .map(
+      ([x, y]) =>
+        `${(ox + (x - minX) * scale).toFixed(1)},${(oy + (y - minY) * scale).toFixed(1)}`,
+    )
+    .join(' ')
+}
+
+function shapeThumbnail(route: RouteData): SVGSVGElement {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+  svg.setAttribute('viewBox', '0 0 100 100')
+  svg.setAttribute('aria-hidden', 'true')
+
+  const line = document.createElementNS('http://www.w3.org/2000/svg', 'polyline')
+  line.setAttribute('points', thumbnailPoints(route.coords))
+  line.setAttribute('fill', 'none')
+  line.setAttribute('stroke', route.color)
+  line.setAttribute('stroke-width', '2.5')
+  line.setAttribute('stroke-linecap', 'round')
+  line.setAttribute('stroke-linejoin', 'round')
+  line.setAttribute('vector-effect', 'non-scaling-stroke')
+  svg.append(line)
+  return svg
+}
+
 function buildRouteList(): void {
   ui.routeList.innerHTML = ''
   for (const route of routes) {
@@ -175,32 +230,34 @@ function buildRouteList(): void {
     card.className = 'route-card'
     card.dataset.id = route.id
 
-    const swatch = document.createElement('span')
-    swatch.className = 'swatch'
-    swatch.style.background = route.color
+    const thumb = document.createElement('span')
+    thumb.className = 'shape-thumb'
+    thumb.append(shapeThumbnail(route))
 
-    const main = document.createElement('span')
-    main.className = 'rc-main'
+    const foot = document.createElement('span')
+    foot.className = 'rc-foot'
+
+    const row = document.createElement('span')
+    row.className = 'rc-row'
     const name = document.createElement('span')
     name.className = 'rc-name'
     name.textContent = route.name
-    const note = document.createElement('span')
-    note.className = 'rc-note'
-    note.textContent = route.note
-    main.append(name, note)
-
-    const meta = document.createElement('span')
-    meta.className = 'rc-meta'
     const km = document.createElement('span')
     km.className = 'rc-km'
     km.textContent = `${(route.total / 1000).toFixed(1)} km`
+    row.append(name, km)
+
+    const note = document.createElement('span')
+    note.className = 'rc-note'
+    note.textContent = route.note
+
     const near = document.createElement('span')
     near.className = 'rc-near'
     near.dataset.near = route.id
     near.textContent = '—'
-    meta.append(km, near)
 
-    card.append(swatch, main, meta)
+    foot.append(row, note, near)
+    card.append(thumb, foot)
     card.addEventListener('click', () => enterPreview(route.id))
     ui.routeList.appendChild(card)
   }
@@ -226,13 +283,17 @@ function setPhase(next: Phase): void {
   ui.panePreview.hidden = next !== 'preview'
   ui.paneRun.hidden = next !== 'run'
   ui.startMode.hidden = true
-  syncHomeChrome()
+  syncSheetChrome()
 }
 
-/** 首頁時把資訊卡外框收掉，只留下置中的兩顆按鈕 */
-function syncHomeChrome(): void {
+/** 首頁只留圓形按鈕；選圖時把資訊卡變成全螢幕圖形畫廊 */
+function syncSheetChrome(): void {
+  const sheet = document.querySelector('.sheet')
+  if (!sheet) return
   const home = phase === 'browse' && !ui.browseHome.hidden
-  document.querySelector('.sheet')?.classList.toggle('is-home', home)
+  const gallery = phase === 'browse' && !home
+  sheet.classList.toggle('is-home', home)
+  sheet.classList.toggle('is-gallery', gallery)
 }
 
 function enterBrowse(): void {
@@ -254,21 +315,21 @@ function enterBrowse(): void {
   setPhase('browse')
   ui.browseHome.hidden = false
   ui.browsePick.hidden = true
-  syncHomeChrome()
+  syncSheetChrome()
   updateBrowseDistances()
 }
 
 function showBrowsePick(): void {
   ui.browseHome.hidden = true
   ui.browsePick.hidden = false
-  syncHomeChrome()
+  syncSheetChrome()
   updateBrowseDistances()
 }
 
 function showBrowseHome(): void {
   ui.browseHome.hidden = false
   ui.browsePick.hidden = true
-  syncHomeChrome()
+  syncSheetChrome()
 }
 
 function enterPreview(id: string): void {
