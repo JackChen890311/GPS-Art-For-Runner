@@ -13,15 +13,22 @@ export const ROUTES: RouteEntry[] = [
   {
     id: 'dino',
     name: '小恐龍',
-    note: '市區街道｜封閉環形',
+    note: '',
     color: '#5b4bff',
     file: './gpx/dino.gpx',
   },
   {
-    id: 'dino2Half',
+    id: 'dino2',
     name: '迅猛龍',
-    note: '街區繞行｜封閉環形',
+    note: '',
     color: '#0f9d6e',
-    file: './gpx/dino2Half.gpx',
+    file: './gpx/dino2.gpx',
+  },
+  {
+    id: 'people',
+    name: '跑跳人',
+    note: '',
+    color: '#850f9d',
+    file: './gpx/people.gpx',
   },
 ]
