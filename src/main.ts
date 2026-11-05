@@ -75,8 +75,6 @@ const ui = {
   smShotEmpty: el('smShotEmpty'),
   smClose: el<HTMLButtonElement>('smClose'),
 
-  sim: el('sim'),
-  simSnap: el<HTMLButtonElement>('simSnap'),
   dpad: el('dpad'),
 }
 
@@ -150,20 +148,6 @@ function routeById(id: string | null): RouteData | null {
 
 function activeRoute(): RouteData | null {
   return routeById(activeId)
-}
-
-function closestRoute(pos: LngLat): RouteData | null {
-  const candidates = runRoute ? [runRoute] : routes
-  let best: RouteData | null = null
-  let bestDist = Infinity
-  for (const r of candidates) {
-    const d = nearestPoint(r, pos).dist
-    if (d < bestDist) {
-      bestDist = d
-      best = r
-    }
-  }
-  return best
 }
 
 /* ---------------- 路線清單 ---------------- */
@@ -854,7 +838,6 @@ function simStartPoint(): LngLat {
 function setSimMode(on: boolean): void {
   simMode = on
   ui.simToggle.setAttribute('aria-pressed', String(on))
-  ui.sim.hidden = !on
   ui.dpad.hidden = !on
 
   if (on) {
@@ -963,20 +946,10 @@ function bindDpad(): void {
   }
 }
 
-function snapToRoute(): void {
-  if (!simPos) return
-  const route = runRoute ?? activeRoute() ?? closestRoute(simPos)
-  if (!route) return
-  simPos = nearestPoint(route, simPos).point
-  pushSimFix()
-  showToast(`已吸附到「${route.name}」`, 1800)
-}
-
 /* ---------------- 事件綁定 ---------------- */
 
 function bindEvents(): void {
   ui.simToggle.addEventListener('click', () => setSimMode(!simMode))
-  ui.simSnap.addEventListener('click', snapToRoute)
   ui.freeRunBtn.addEventListener('click', startFreeRun)
   ui.chooseShapeBtn.addEventListener('click', showBrowsePick)
   ui.backToHome.addEventListener('click', showBrowseHome)
@@ -1089,7 +1062,6 @@ declare global {
       end: () => void
       toggleSim: (on?: boolean) => void
       move: (dx: number, dy: number) => void
-      snap: () => void
     }
   }
 }
@@ -1127,5 +1099,4 @@ window.__app = {
     simPos = moveByMeters(simPos, dx, dy)
     pushSimFix()
   },
-  snap: () => snapToRoute(),
 }

@@ -830,27 +830,6 @@ body {
   opacity: 0.5;
 }
 
-/* ---------- 模擬面板 ---------- */
-
-.sim {
-  margin-top: 14px;
-  padding-top: 14px;
-  border-top: 1px dashed var(--stroke);
-}
-
-.sim-row {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 10px;
-}
-
-.sim-hint {
-  font-size: 10px;
-  color: var(--muted);
-  line-height: 1.4;
-}
-
 /* ---------- 虛擬十字鍵 ---------- */
 
 .dpad {
