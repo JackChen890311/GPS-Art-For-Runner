@@ -49,8 +49,9 @@ const ui = {
   runNote: el('runNote'),
   runTotal: el('runTotal'),
   pct: el('pct'),
-  left: el('left'),
-  off: el('off'),
+  doneKm: el('doneKm'),
+  elapsed: el('elapsed'),
+  speed: el('speed'),
   bar: el('bar'),
   status: el('status'),
   stats: el('stats'),
@@ -570,8 +571,9 @@ function closeSummary(): void {
 
 function resetRunStats(): void {
   ui.pct.textContent = '0'
-  ui.left.textContent = runRoute ? (runRoute.total / 1000).toFixed(1) : '—'
-  ui.off.textContent = '--'
+  ui.doneKm.textContent = '0.00'
+  ui.elapsed.textContent = '0:00'
+  ui.speed.textContent = '—'
   ui.bar.style.width = '0%'
   ui.bar.style.background = ''
   ui.stats.classList.toggle('dim', !currentFix)
@@ -604,12 +606,8 @@ function applyFix(f: Fix | null): void {
   const proj = project(runRoute, [f.lon, f.lat], lastAlong)
   lastAlong = proj.along
 
-  // 百分比只算「路線本身」，從你腳下走到切入點的那一小段不算進度
-  const routeSpan = Math.max(1, runRoute.total - runLeadIn)
-  const covered = Math.max(0, proj.along - runLeadIn)
-  const pct = Math.max(0, Math.min(100, (covered / routeSpan) * 100))
-  // 剩餘距離則包含還沒走完的接駁段
-  const remaining = Math.max(0, runRoute.total - proj.along)
+  // 完成度用「目前公里數 / 總公里數」計算
+  const pct = Math.max(0, Math.min(100, (proj.along / runRoute.total) * 100))
   // 偏離距離小於 GPS 誤差時，一律視為在線上
   const deviation = proj.dist <= f.accuracy ? 0 : proj.dist
 
@@ -620,9 +618,14 @@ function applyFix(f: Fix | null): void {
   }
 
   ui.pct.textContent = pct.toFixed(0)
-  ui.left.textContent =
-    remaining < 1000 ? (remaining / 1000).toFixed(2) : (remaining / 1000).toFixed(1)
-  ui.off.textContent = deviation < 10 ? deviation.toFixed(0) : String(Math.round(deviation))
+  ui.doneKm.textContent = (proj.along / 1000).toFixed(2)
+  const secs = runStartedAt > 0 ? (Date.now() - runStartedAt) / 1000 : 0
+  ui.elapsed.textContent = fmtDuration(secs)
+  if (secs >= 1 && proj.along > 0) {
+    ui.speed.textContent = ((proj.along / 1000) / (secs / 3600)).toFixed(1)
+  } else {
+    ui.speed.textContent = '—'
+  }
   ui.bar.style.width = `${pct}%`
 
   mapView.setProgress(proj.along)

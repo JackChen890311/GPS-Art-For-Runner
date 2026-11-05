@@ -479,11 +479,11 @@ body {
   transition: width 0.25s ease-out, background 0.2s;
 }
 
-/* ---------- 三個數字 ---------- */
+/* ---------- 四個數字 ---------- */
 
 .stats {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 8px;
 }
 
@@ -491,7 +491,7 @@ body {
   padding: 2px 0;
 }
 
-.stat + .stat {
+.stat:nth-child(even) {
   border-left: 1px solid var(--stroke);
   padding-left: 14px;
 }
