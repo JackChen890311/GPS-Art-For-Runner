@@ -31,4 +31,11 @@ export const ROUTES: RouteEntry[] = [
     color: '#850f9d',
     file: './gpx/people.gpx',
   },
+  {
+    id: 'dog',
+    name: '臘腸狗',
+    note: '',
+    color: '#d4c410',
+    file: './gpx/dog.gpx',
+  },
 ]
